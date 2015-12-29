@@ -1,0 +1,6 @@
+the_ROM_image:
+{
+	[bootloader]C:\Users\User\workspace\fsbl\Debug\fsbl.elf
+	C:\Users\User\workspace\demo_hw_platform\system.bit
+	C:\Users\User\workspace\demo\Debug\demo.elf
+}
