@@ -18,6 +18,7 @@
 /*																		*/
 /************************************************************************/
 
+#include <stdlib.h>
 /* ------------------------------------------------------------ */
 /*				Include File Definitions						*/
 /* ------------------------------------------------------------ */
@@ -123,13 +124,15 @@ menu:
 			break;
 		case 'r':
 			xil_printf("\r\n");
-			while (userInput != '\n' && numRead < (SEED_BUFLEN-1))
+			while (userInput != '\n' && userInput != '\r' && numRead < (SEED_BUFLEN-1))
 			{
 				while (!XUartPs_IsReceiveData(UART_BASEADDR)) {};
 				/* Store the first character in the UART recieve FIFO and echo it */
 				userInput = XUartPs_ReadReg(UART_BASEADDR, XUARTPS_FIFO_OFFSET);
-				xil_printf("\r\nread: %c\r\n", userInput);
-				if (userInput != '\n') {
+				if (userInput == '\n' || userInput == '\r' || isalnum((int) userInput)) {
+					xil_printf("%c", userInput);
+				}
+				if (userInput != '\n' && userInput != '\r') {
 					seed[numRead++] = userInput;
 				}
 			}
@@ -141,7 +144,7 @@ menu:
 				}
 			}
 			int newseed = atoi(seed);
-			xil_printf("Seed parsed as: %d\r\n", newseed);
+			xil_printf("New seed: %d\r\n", newseed);
 			srand(newseed);
 			break;
 		case 'q':
@@ -169,6 +172,7 @@ void MainDemoPrintMenu()
 	xil_printf("2 - VGA output demo\n\r");
 	xil_printf("3 - HDMI output demo\n\r");
 	xil_printf("4 - Ethernet demo\n\r");
+	xil_printf("r - Set random seed\n\r");
 	xil_printf("q - Quit\n\r");
 	xil_printf("\n\r");
 	xil_printf("Select a demo to run:");
