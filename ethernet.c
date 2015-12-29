@@ -1,5 +1,6 @@
 #include "ethernet.h"
 
+#include "xil_cache.h"
 #include "xil_io.h"
 #include "xil_printf.h"
 #include "xil_types.h"
@@ -76,12 +77,10 @@ int ethernet_demo2() {
 			  | XEMACPS_DMACR_RXSIZE_MASK
 			  | XEMACPS_DMACR_TXSIZE_MASK);
 	xil_printf("set DMA config\r\n");
-	// Enable network interfaces
+	// Enable management interfaces
 	Xil_Out32(XPAR_XEMACPS_0_BASEADDR + XEMACPS_NWCTRL_OFFSET,
-			XEMACPS_NWCTRL_MDEN_MASK
-			| XEMACPS_NWCTRL_TXEN_MASK
-			| XEMACPS_NWCTRL_RXEN_MASK);
-	xil_printf("enabled transmit/receive\r\n");
+			XEMACPS_NWCTRL_MDEN_MASK);
+	xil_printf("enabled management interface\r\n");
 
 	// DEMO: Print PHY status for 5 seconds
 	int i;
@@ -197,6 +196,31 @@ int ethernet_demo2() {
 	}
 	Xil_Out32(XPAR_XEMACPS_0_BASEADDR + XEMACPS_NWCFG_OFFSET, NewNetCfg);
 	// Configure receive and transmit queues
+	for (i = 0; i < NUM_BD; i++) {
+		if ((u32)(&RxFrames[i]) & 0x3) {
+			xil_printf("Invalid RxFrames[%d] address: %08X\r\n", i, (u32)&RxFrames[i]);
+			return XST_FAILURE;
+		}
+		RxFrameList[i][0] =
+			(u32)&RxFrames[i]  /* we already verified lower bits are 0, this is safe */
+			| 1 /* used bit */
+			;
+		TxFrameList[i][0] = (u32)&TxFrames[i];
+		TxFrameList[i][1] = (1 << 31);  // Used bit
+	}
+	RxFrameList[NUM_BD-1][0] |= (1 << 1);   // Rx Wrap bit
+	TxFrameList[NUM_BD-1][1] |= (1 << 30);  // Tx Wrap bit
 
+	Xil_DCacheFlushRange((u32)&RxFrameList, NUM_BD*8);
+	Xil_DCacheFlushRange((u32)&TxFrameList, NUM_BD*8);
+	Xil_Out32(XPAR_XEMACPS_0_BASEADDR + XEMACPS_RXQBASE_OFFSET, (u32)&RxFrameList);
+	Xil_Out32(XPAR_XEMACPS_0_BASEADDR + XEMACPS_RXQBASE_OFFSET, (u32)&TxFrameList);
+
+	// Setup interrupts
+
+	// Disable management interfaces, enable Tx/Rx
+	Xil_Out32(XPAR_XEMACPS_0_BASEADDR + XEMACPS_NWCTRL_OFFSET,
+			XEMACPS_NWCTRL_TXEN_MASK | XEMACPS_NWCTRL_RXEN_MASK);
+	xil_printf("enabled transmit/receive (disabled management)\r\n");
 	return XST_SUCCESS;
 }
