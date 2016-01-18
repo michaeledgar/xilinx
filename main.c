@@ -137,8 +137,9 @@ menu:
 				}
 			}
 			int cur;
-			for (cur = 0; cur < numRead; cur++) {
-				if (cur < '0' || cur > '9') {
+			for (cur = 0; cur < SEED_BUFLEN; cur++) {
+				char b = seed[cur];
+				if ((b < '0' || b > '9') && (b != 0 && b != '\n' && b != '\r')) {
 					xil_printf("Invalid seed: %s\r\n", seed);
 					goto menu;
 				}
